@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Iconographic tags selector</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .description {
+      max-width: 800px;
+      font-size: 0.95rem;
+      color: #444;
+      margin-bottom: 1.5rem;
+    }
+    .categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .category {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .category label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    select {
+      min-height: 140px;
+      padding: 0.2rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+    button {
+      cursor: pointer;
+      border-radius: 999px;
+      border: none;
+      padding: 0.35rem 0.8rem;
+      font-size: 0.8rem;
+      background: #e0e0e0;
+    }
+    button:hover {
+      background: #d4d4d4;
+    }
+    .category button {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    #resultContainer {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      max-width: 800px;
+    }
+    #resultContainer label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+    #result {
+      width: 100%;
+      min-height: 60px;
+      resize: vertical;
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .small-hint {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.3rem;
+    }
+    .copy-btn {
+      background: #1976d2;
+      color: white;
+    }
+    .copy-btn:hover {
+      background: #115293;
+    }
+    .reset-all {
+      background: #f44336;
+      color: white;
+    }
+    .reset-all:hover {
+      background: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <h1>SigiDoc iconographic tags selector</h1>
+  <p class="description">
+    Select freely from each category (multiple selections are allowed). A single click adds/removes a tag.
+    The final line at the bottom lists all the tags 
+    selected, separated by a single space, ready to be copied/pasted.
+  </p>
+
+  <div class="categories" id="categories"></div>
+
+  <div class="actions">
+    <button type="button" class="reset-all" id="resetAll">Delete all</button>
+  </div>
+
+  <div id="resultContainer">
+    <label for="result">Final selection (copy/paste) :</label>
+    <textarea id="result" readonly></textarea>
+    <div class="actions" style="margin-top:0.5rem;">
+      <button type="button" class="copy-btn" id="copyBtn">Copy to clipboard</button>
+    </div>
+    <p class="small-hint">
+      You can also select all (Ctrl/Cmd + A) and then copy (Ctrl/Cmd + C).
+    </p>
+  </div>
+
+  <script>
+    // Données extraites automatiquement de Feuil1, selon les règles des macros :
+    // Feuil2 col A -> Feuil1 col B (en incluant l'entête de colonne),
+    // Feuil2 col B -> Feuil1 col C,
+    // ...
+    // Feuil2 col K -> Feuil1 col L
+    const dataByCategory = {
+  "Main themes": [
+    "2-persons",
+    "3-persons",
+    "4-persons",
+    "5-persons",
+    "6-persons",
+    "animal",
+    "architecture",
+    "cross",
+    "eunuch",
+    "female",
+    "male",
+    "person",
+    "scene",
+    "undetermined"
+  ],
+  "People": [
+    "archangel",
+    "Christ",
+    "emperor",
+    "imperial-family",
+    "prophet",
+    "saint",
+    "Virgin"
+  ],
+  "Animals": [
+    "bird",
+    "crane",
+    "dog",
+    "donkey",
+    "dove",
+    "dragon",
+    "eagle",
+    "elephant",
+    "fish",
+    "griffon",
+    "horse",
+    "lion",
+    "ox",
+    "peacock",
+    "rabbit-hare",
+    "ram",
+    "senmurv",
+    "sheep",
+    "snake",
+    "sphinx",
+    "wolf"
+  ],
+  "Scenes": [
+    "Adoration-of-the-Magi",
+    "Anastasis",
+    "Annunciation",
+    "Ascension",
+    "Baptism-of-Christ",
+    "Christ-and-Zaccheus",
+    "Crucifixion",
+    "Deesis",
+    "Dormition",
+    "Entry-into-Jerusalem",
+    "Flight-into-Egypt",
+    "Hospitality-of-Abraham",
+    "Myrrh-Bearers",
+    "Nativity",
+    "Presentation-of-Christ",
+    "Presentation-of-the-Virgin",
+    "Sacrifice-of-Isaac",
+    "Transfiguration"
+  ],
+  "Architecture": [
+    "castle",
+    "church",
+    "city-walls",
+    "temple"
+  ],
+  "Crosses": [
+    "ornated",
+    "patriarchal",
+    "potent",
+    "simple"
+  ],
+  "Saints": [
+    "Daniel",
+    "David",
+    "Elias",
+    "Gabriel",
+    "Michael",
+    "Samuel",
+    "St-Akylina",
+    "St-Amphilochos",
+    "St-Anastasia",
+    "St-Andrew",
+    "St-Anna",
+    "St-Anthimos",
+    "St-Anthony",
+    "St-Anthony-II-Kauleas",
+    "St-Antipas",
+    "St-Artemios",
+    "St-Athanasios",
+    "St-Athenogenes",
+    "St-Auxentios",
+    "St-Barbara",
+    "St-Barnabas",
+    "St-Basil",
+    "St-Catherine",
+    "St-Constantine-I",
+    "St-Damian",
+    "St-Demetrios",
+    "St-Diomedes",
+    "St-Eleutherios",
+    "St-Epiphanios",
+    "St-Eugenios",
+    "St-Euphemia",
+    "St-Eusebios",
+    "St-Eustathios",
+    "St-Eustratios",
+    "St-Euthymios-the-Great",
+    "St-George",
+    "St-Germanos-I",
+    "St-Gregory-of-Nyssa",
+    "St-Gregory-Thaumatourgos",
+    "St-Gregory-Theologos",
+    "St-Ianouarios",
+    "St-Ignatios",
+    "St-Irene",
+    "St-John-Chrysostomos",
+    "St-John-Kalybites",
+    "St-John-Prodromos",
+    "St-John-the-Evangelist",
+    "St-John-Theologos",
+    "St-Joseph-the-Hymnographer",
+    "St-Kodratos",
+    "St-Kosmas",
+    "St-Lazaros",
+    "St-Luke",
+    "St-Luke-the-Stylite",
+    "St-Marc",
+    "St-Mark",
+    "St-Martinakios",
+    "St-Menas",
+    "St-Methodios-I",
+    "St-Nestor",
+    "St-Nicholas",
+    "St-Nikephoros",
+    "St-Niketas",
+    "St-Panteleimon",
+    "St-Parthenios",
+    "St-Paul",
+    "St-Peter",
+    "St-Philip",
+    "St-Platon",
+    "St-Portios",
+    "St-Prokopios",
+    "St-Sabas",
+    "St-Sabbas",
+    "St-Sergios",
+    "St-Sophia",
+    "St-Stephen",
+    "St-Stephen-the-Younger",
+    "St-Symeon-the-New-Theologian",
+    "St-Symeon-the-Stylite",
+    "St-Tarasios",
+    "St-Thekla",
+    "St-Theodora",
+    "St-Theodore",
+    "St-Theodore-Stratelates",
+    "St-Theodore-the-Stoudite",
+    "St-Theodore-the-Teron",
+    "St-Theodosios",
+    "St-Theopiste",
+    "St-Thomas",
+    "St-Titos",
+    "St-Zenais",
+    "St-Zotikos"
+  ],
+  "Emperors": [
+    "Alexander",
+    "Alexius-I",
+    "Alexius-II",
+    "Alexius-III",
+    "Alexius-IV",
+    "Alexius-V",
+    "Anastasius-I",
+    "Anastasius-II",
+    "Andronicus-I",
+    "Andronicus-II",
+    "Andronicus-III",
+    "Andronicus-IV",
+    "Arcadius",
+    "Basil-I",
+    "Basil-II",
+    "Basiliscus",
+    "Constans-II",
+    "Constantine-I",
+    "Constantine-III",
+    "Constantine-IV",
+    "Constantine-IX",
+    "Constantine-V",
+    "Constantine-VI",
+    "Constantine-VII",
+    "Constantine-VIII",
+    "Constantine-X",
+    "Constantine-XI",
+    "Constantius-II",
+    "Heracleonas",
+    "Heraclius",
+    "Ioannes-VIII",
+    "Irene",
+    "Isaac-I",
+    "Isaac-II",
+    "John-I",
+    "John-II",
+    "John-III",
+    "John-IV",
+    "John-V",
+    "John-VI",
+    "John-VII",
+    "Jovian",
+    "Julian",
+    "Justin-I",
+    "Justin-II",
+    "Justinian-I",
+    "Justinian-II",
+    "Leo -I",
+    "Leo-II",
+    "Leo-III",
+    "Leo-IV",
+    "Leo-V",
+    "Leo-VI",
+    "Leontios",
+    "Manuel-I",
+    "Manuel-II",
+    "Marcian",
+    "Maurice",
+    "Michael-I",
+    "Michael-II",
+    "Michael-III",
+    "Michael-IV",
+    "Michael-V",
+    "Michael-VI",
+    "Michael-VII",
+    "Michael-VIII",
+    "Nicephorus-I",
+    "Nicephorus-II",
+    "Nicephorus-III",
+    "Philippicus",
+    "Phocas",
+    "Romanus-I",
+    "Romanus-II",
+    "Romanus-III",
+    "Romanus-IV",
+    "Stauracius",
+    "Theodora",
+    "Theodore-I",
+    "Theodore-II",
+    "Theodosius-I",
+    "Theodosius-II",
+    "Theodosius-III",
+    "Theophilus",
+    "Tiberius-II-Konstantinus",
+    "Tiberius-III",
+    "Valens",
+    "Zeno",
+    "Zoe"
+  ],
+  "Posture and appearance": [
+    "bishop",
+    "blessing",
+    "bust",
+    "head",
+    "military",
+    "on-horseback",
+    "praying",
+    "seated",
+    "standing",
+    "stylite"
+  ],
+  "Attributes": [
+    "akakia",
+    "baton",
+    "box",
+    "branch",
+    "child",
+    "church-model",
+    "cross-in-hand",
+    "cross-staff",
+    "cruciger-globe",
+    "globe",
+    "gospel",
+    "icon",
+    "labarum",
+    "medallion",
+    "medical-instruments",
+    "scabbard",
+    "scepter",
+    "scroll",
+    "shield",
+    "spear",
+    "sword"
+  ],
+  "Secondary features": [
+    "crosslet",
+    "fleurons",
+    "flower",
+    "Manus-Dei",
+    "moon",
+    "on-globe",
+    "on-steps",
+    "star",
+    "sun",
+    "tongues-of-fire",
+    "tree"
+  ]
+};
+
+    function createCategoryBlock(categoryName, values) {
+      const container = document.createElement('div');
+      container.className = 'category';
+
+      const header = document.createElement('div');
+      header.className = 'category-header';
+
+      const label = document.createElement('label');
+      label.textContent = categoryName;
+
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.textContent = 'Delete';
+
+      header.appendChild(label);
+      header.appendChild(clearButton);
+
+      const select = document.createElement('select');
+      select.multiple = true;
+
+      // Permettre le multi-sélection par simple clic (sans Ctrl/Cmd)
+      select.addEventListener('mousedown', function(e) {
+        if (e.target.tagName === 'OPTION') {
+          e.preventDefault();
+          const option = e.target;
+          option.selected = !option.selected;
+          // Déclencher l'événement change pour mettre à jour le résultat
+          select.dispatchEvent(new Event('change'));
+        }
+      });
+
+      values.forEach(function(v) {
+        const option = document.createElement('option');
+        option.value = v;
+        option.textContent = v;
+        select.appendChild(option);
+      });
+
+      clearButton.addEventListener('click', function() {
+        for (let i = 0; i < select.options.length; i++) {
+          select.options[i].selected = false;
+        }
+        updateResult();
+      });
+
+      select.addEventListener('change', updateResult);
+
+      container.appendChild(header);
+      container.appendChild(select);
+
+      return { container: container, select: select };
+    }
+
+    const categoriesRoot = document.getElementById('categories');
+    const allSelects = [];
+
+    Object.keys(dataByCategory).forEach(function(categoryName) {
+      const values = dataByCategory[categoryName];
+      if (!values || !values.length) return;
+      const created = createCategoryBlock(categoryName, values);
+      categoriesRoot.appendChild(created.container);
+      allSelects.push(created.select);
+    });
+
+    function updateResult() {
+      const selected = [];
+      allSelects.forEach(function(select) {
+        for (let i = 0; i < select.options.length; i++) {
+          const opt = select.options[i];
+          if (opt.selected) {
+            selected.push(opt.value);
+          }
+        }
+      });
+      document.getElementById('result').value = selected.join(' ');
+    }
+
+    document.getElementById('resetAll').addEventListener('click', function() {
+      allSelects.forEach(function(select) {
+        for (let i = 0; i < select.options.length; i++) {
+          select.options[i].selected = false;
+        }
+      });
+      updateResult();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async function() {
+      const text = document.getElementById('result').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('Text copied to the clipboard.');
+      } catch (err) {
+        console.error(err);
+        alert('Cannot copy automatically. Please select and copy manually.');
+      }
+    });
+  </script>
+</body>
+</html>
